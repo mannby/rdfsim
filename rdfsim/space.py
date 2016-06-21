@@ -16,7 +16,7 @@ import numpy as np
 from operator import itemgetter
 from tempfile import mkdtemp
 from scipy.sparse import lil_matrix, csr_matrix, issparse
-import RDF
+import rdflib
 import pickle
 import os
 
@@ -25,6 +25,7 @@ class Space(object):
 
     decay = 0.9
     max_depth = 5
+    v = 1
 
     def __init__(self, path_to_rdf, format='ntriples', property='http://www.w3.org/2004/02/skos/core#broader'):
         self._path_to_rdf = 'file:' + path_to_rdf
@@ -36,8 +37,7 @@ class Space(object):
         self.generate_index(self._get_statement_stream())
 
     def _get_statement_stream(self):
-        parser = RDF.Parser(name=self._format)
-        return parser.parse_as_stream(self._path_to_rdf)
+        return rdflib.graph.Graph().parse(self._path_to_rdf, format="nt")
 
     def generate_index(self, stream):
         if self._direct_parents != None:
@@ -48,10 +48,10 @@ class Space(object):
         k = 0
 
         for statement in stream:
-            p = str(statement.predicate.uri)
-            if statement.object.is_resource() and p == self._property:
-                s = str(statement.subject.uri)
-                o = str(statement.object.uri)
+            p = str(statement[1])
+            if isinstance(statement[2], rdflib.term.URIRef) and p == self._property:
+                s = str(statement[0])
+                o = str(statement[2])
                 if not parents.has_key(s):
                     parents[s] = [o]
                 else:
